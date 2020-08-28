@@ -21,3 +21,7 @@ mvn spring-boot:run
 
 # US 3: A customer can display its account balance
 - Ajout du service d'affichage de la balance
+
+# US 4: A customer can display its account transactions history
+- Ajout du service qui affiche la liste des transactions pour un compte donné
+- Ajout des tests unitaires du repositroy

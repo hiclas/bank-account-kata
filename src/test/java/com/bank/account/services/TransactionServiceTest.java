@@ -7,8 +7,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -253,4 +256,54 @@ public class TransactionServiceTest {
 		});
 	}
 
+	/**
+	 * Test of get bank account transaction history for an existing account
+	 * 
+	 * @throws Exception
+	 */
+	@DisplayName("Get Bank Account Transaction History")
+	@Test
+	public void testGetBankAccountTransactionHistoryForValidAccount() throws Exception {
+
+		List<Transaction> transactions = Arrays.asList(
+				Transaction.builder().id(1L).transactionType(TransactionType.DEPOSIT_OPERATION).amount(1000.0)
+						.motive("First Deposit").date(new Date()).account(firstAccount).build(),
+				Transaction.builder().id(1L).transactionType(TransactionType.DEPOSIT_OPERATION).amount(100.0)
+						.motive(null).date(new Date()).account(firstAccount).build(),
+				Transaction.builder().id(1L).transactionType(TransactionType.WITHDRAWAL_OPERATION).amount(100.0)
+						.motive(null).date(new Date()).account(firstAccount).build());
+
+		when(transactionRepository.findAllByAccountId(1L)).thenReturn(transactions);
+
+		List<TransactionDTO> transactionDTOs = transactions.stream()
+				.map(transaction -> modelMapper.map(transaction, TransactionDTO.class)).collect(Collectors.toList());
+
+		when(modelServiceMapper.map(transactions.get(0), TransactionDTO.class))
+				.thenReturn(modelMapper.map(transactions.get(0), TransactionDTO.class));
+		when(modelServiceMapper.map(transactions.get(1), TransactionDTO.class))
+				.thenReturn(modelMapper.map(transactions.get(1), TransactionDTO.class));
+		when(modelServiceMapper.map(transactions.get(2), TransactionDTO.class))
+				.thenReturn(modelMapper.map(transactions.get(2), TransactionDTO.class));
+
+		List<TransactionDTO> result = transactionServiceImpl.getBankAccountTransactionHistory(1L);
+
+		assertEquals(transactionDTOs, result);
+
+		verify(transactionRepository, times(1)).findAllByAccountId(1L);
+
+	}
+
+	/**
+	 * Test of get bank account transaction history for an invalid account
+	 * 
+	 * @throws Exception
+	 */
+	@DisplayName("Get Bank Account Transaction History")
+	@Test
+	public void testGetBankAccountTransactionHistoryForInvalidAccount() throws Exception {
+		assertThrows(AccountNotFoundException.class, () -> {
+			// 4L is a none existing account
+			transactionServiceImpl.readAccountBalance(4L);
+		});
+	}
 }

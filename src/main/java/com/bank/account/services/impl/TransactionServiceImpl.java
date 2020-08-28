@@ -2,6 +2,8 @@ package com.bank.account.services.impl;
 
 
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +66,20 @@ public class TransactionServiceImpl implements TransactionService {
 		// balance of the account.
 		return accountRepository.findById(idAccount).orElseThrow(AccountNotFoundException::new).getBalance();
 	}
+	
+	
+	@Override
+	@Transactional(readOnly = true)
+	public List<TransactionDTO> getBankAccountTransactionHistory(Long idAccount) {
+		// Verify if the account exists
+		accountRepository.findById(idAccount).orElseThrow(AccountNotFoundException::new);
+		// Find all the account's transactions
+		return transactionRepository.findAllByAccountId(idAccount)
+				.stream()
+				.map(transaction -> modelMapper.map(transaction, TransactionDTO.class))
+				.collect(Collectors.toList());
+	}
+	
 	
 	/**
 	 * Injection of the minimum value of deposit from application.properties.

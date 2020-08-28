@@ -24,4 +24,13 @@ public interface TransactionService {
 	 * @return the balance
 	 */
 	Double readAccountBalance(Long accountId);
+
+	/**
+	 * This method retrieve the bank account transactions.
+	 * 
+	 * @param idAccount the account identifier
+	 * @return the list of transaction related to the account
+	 */
+	List<TransactionDTO> getBankAccountTransactionHistory(Long idAccount);
+
 }
