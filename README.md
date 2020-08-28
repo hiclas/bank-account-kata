@@ -18,3 +18,6 @@ mvn spring-boot:run
 # US 2: Withdrawal money from a customer account:
 - Il s'agit du même service: createTransaction avec le type de transaction cette fois: WITHDRAWAL_OPERATION.
 - J'ai fait le choix de ne pas autoriser au client un retrait de 0e (en plus du découvert). 
+
+# US 3: A customer can display its account balance
+- Ajout du service d'affichage de la balance

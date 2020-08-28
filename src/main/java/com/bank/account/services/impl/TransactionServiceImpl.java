@@ -1,6 +1,8 @@
 package com.bank.account.services.impl;
 
 
+import java.util.Date;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,6 +56,24 @@ public class TransactionServiceImpl implements TransactionService {
 		return modelMapper.map(transaction, TransactionDTO.class);
 	}
 
+
+	@Override
+	@Transactional(readOnly = true)
+	public Double readAccountBalance(Long idAccount) {
+		// If the account does not exist we throw an exception otherwise we get the
+		// balance of the account.
+		return accountRepository.findById(idAccount).orElseThrow(AccountNotFoundException::new).getBalance();
+	}
+	
+	/**
+	 * Injection of the minimum value of deposit from application.properties.
+	 * @param minDepositAmount
+	 */
+	@Value("${min.deposit.amount}")
+	public void setMinDepositAmount(Double minDepositAmount) {
+		this.minDepositAmount = minDepositAmount;
+	}
+	
 	/**
 	 * This method checks the deposit condition(s), find the concerned account,
 	 * update it, and create a new transaction for traceability.
@@ -67,23 +87,12 @@ public class TransactionServiceImpl implements TransactionService {
 		final Account account = accountRepository.findById(idAccount).orElseThrow(AccountNotFoundException::new);
 		account.setBalance(account.getBalance() + transactionBean.getAmount());
 		final Transaction transaction = Transaction.builder().transactionType(transactionBean.getTransactionType())
-				.amount(transactionBean.getAmount()).motive(transactionBean.getMotive()).date(transactionBean.getDate())
+				.amount(transactionBean.getAmount()).motive(transactionBean.getMotive()).date(new Date())
 				.account(account).build();
 		accountRepository.save(account);
 		return transactionRepository.save(transaction);
 
 	}
-
-	/**
-	 * Injection of the minimum value of deposit from application.properties.
-	 * @param minDepositAmount
-	 */
-	@Value("${min.deposit.amount}")
-	public void setMinDepositAmount(Double minDepositAmount) {
-		this.minDepositAmount = minDepositAmount;
-	}
-	
-	
 	/**
 	 * Process withdrawal operation.
 	 *
@@ -97,7 +106,7 @@ public class TransactionServiceImpl implements TransactionService {
 			account.setBalance(account.getBalance() - transactionBean.getAmount());
 			final Transaction transaction = Transaction.builder().transactionType(transactionBean.getTransactionType())
 					.amount(transactionBean.getAmount()).motive(transactionBean.getMotive())
-					.date(transactionBean.getDate()).account(account).build();
+					.date(new Date()).account(account).build();
 			accountRepository.save(account);
 			return transactionRepository.save(transaction);
 		} else {

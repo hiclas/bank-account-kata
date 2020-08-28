@@ -226,5 +226,31 @@ public class TransactionServiceTest {
 		});
 
 	}
+	/**
+	 * Test of read balance account for an existing account.
+	 * 
+	 * @throws Exception
+	 */
+	@DisplayName("Get account balance for an existing account")
+	@Test
+	public void testReadAccountBalanceValidAccount() throws Exception {
+		assertEquals(firstAccount.getBalance(), transactionServiceImpl.readAccountBalance(firstAccount.getId()));
+		assertEquals(secondAccount.getBalance(), transactionServiceImpl.readAccountBalance(secondAccount.getId()));
+	}
+
+	/**
+	 * Test of read account balance for an invalid account (expected
+	 * AccountNotFoundException).
+	 * 
+	 * @throws Exception
+	 */
+	@DisplayName("Get account balance for an invalid account")
+	@Test
+	public void testReadAccountBalanceInvalidAccount() throws Exception {
+		assertThrows(AccountNotFoundException.class, () -> {
+			// 4L is a none existing account
+			transactionServiceImpl.readAccountBalance(4L);
+		});
+	}
 
 }

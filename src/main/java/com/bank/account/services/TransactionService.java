@@ -17,4 +17,11 @@ public interface TransactionService {
 	 */
 	public TransactionDTO createTransaction(Long idAccount, TransactionDetailsDto transactionBean);
 
+	/**
+	 * This method read the balance related to the account identifier in the param
+	 * 
+	 * @param accountId the concerned Account
+	 * @return the balance
+	 */
+	Double readAccountBalance(Long accountId);
 }
