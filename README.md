@@ -14,3 +14,7 @@ mvn spring-boot:run
 
 # US 1: Deposit from customer to its account:
 - Pour ne pas faire du refactoring j'ai pensé en développant la première US à la deuxième concernant le retrait d'où mon choix concernant le nommage du service: createTransaction avec TransactionDetailsDto qui contient le type de la transaction.
+
+# US 2: Withdrawal money from a customer account:
+- Il s'agit du même service: createTransaction avec le type de transaction cette fois: WITHDRAWAL_OPERATION.
+- J'ai fait le choix de ne pas autoriser au client un retrait de 0e (en plus du découvert). 

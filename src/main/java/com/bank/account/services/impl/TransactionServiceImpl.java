@@ -31,7 +31,6 @@ public class TransactionServiceImpl implements TransactionService {
 	@Autowired
 	private ModelMapper modelMapper;
 	
-	@Value("${min.deposit.amount:0.01D}")
 	private Double minDepositAmount;
 	
 	@Override
@@ -45,6 +44,9 @@ public class TransactionServiceImpl implements TransactionService {
 			// Deposit operation
 		case DEPOSIT_OPERATION:
 			transaction = processDepositOperation(idAccount, transactionDetails);
+			break;
+		case WITHDRAWAL_OPERATION:
+			transaction = processWithdrawalOperation(idAccount, transactionDetails);
 			break;
 		default:
 			throw new IllegalParameterException();
@@ -80,4 +82,38 @@ public class TransactionServiceImpl implements TransactionService {
 	public void setMinDepositAmount(Double minDepositAmount) {
 		this.minDepositAmount = minDepositAmount;
 	}
+	
+	
+	/**
+	 * Process withdrawal operation.
+	 *
+	 * @param idAccount       the id account
+	 * @param transactionBean the transaction request
+	 * @return the transaction response
+	 */
+	private Transaction processWithdrawalOperation(Long idAccount, TransactionDetailsDto transactionBean) {
+		final Account account = accountRepository.findById(idAccount).orElseThrow(AccountNotFoundException::new);
+		if (isWithdrawalAllowed(account, transactionBean.getAmount())) {
+			account.setBalance(account.getBalance() - transactionBean.getAmount());
+			final Transaction transaction = Transaction.builder().transactionType(transactionBean.getTransactionType())
+					.amount(transactionBean.getAmount()).motive(transactionBean.getMotive())
+					.date(transactionBean.getDate()).account(account).build();
+			accountRepository.save(account);
+			return transactionRepository.save(transaction);
+		} else {
+			throw new AmountNotAllowedException();
+		}
+	}
+
+	/**
+	 * This method verify if the transaction is allowed (no overdraft is used)
+	 * 
+	 * @param account
+	 * @param withdrawalAmount
+	 * @return
+	 */
+	private boolean isWithdrawalAllowed(Account account, Double withdrawalAmount) {
+		return withdrawalAmount != null && withdrawalAmount > 0 && account.getBalance() - withdrawalAmount >= 0;
+	}
+	
 }

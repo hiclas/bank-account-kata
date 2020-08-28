@@ -157,5 +157,74 @@ public class TransactionServiceTest {
 		});
 
 	}
+	/**
+	 * The withdrawal valid test case.
+	 * 
+	 * @param withdrawalAmount must be less or equal than the account balance
+	 * @throws Exception
+	 */
+	@DisplayName("Withdraw Valid Amount From Account")
+	@ValueSource(doubles = { 0.1, 55 })
+	@ParameterizedTest
+	public void testWithdrawValidAmountFromAccount(Double withdrawalAmount) throws Exception {
+
+		final TransactionDetailsDto transactionBean = new TransactionDetailsDto();
+		transactionBean.setTransactionType(TransactionType.WITHDRAWAL_OPERATION);
+		transactionBean.setAmount(100.0);
+		transactionBean.setMotive(null);
+		transactionBean.setDate(new Date());
+		transactionBean.setAccountId(1L);
+
+		final Account firstAccountBalanceUpdated = Account.builder().build();
+		BeanUtils.copyProperties(firstAccount, firstAccountBalanceUpdated);
+		firstAccountBalanceUpdated.setBalance(firstAccount.getBalance() - 100.0);
+
+		when(accountRepository.save(firstAccountBalanceUpdated)).thenReturn(firstAccountBalanceUpdated);
+
+		final Transaction transaction = Transaction.builder().id(1L)
+				.transactionType(transactionBean.getTransactionType()).amount(transactionBean.getAmount())
+				.motive(transactionBean.getMotive()).date(transactionBean.getDate()).account(firstAccountBalanceUpdated)
+				.build();
+
+		when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+
+		final TransactionDTO transactionDTOExpected = modelMapper.map(transaction, TransactionDTO.class);
+
+		when(modelServiceMapper.map(transaction, TransactionDTO.class)).thenReturn(transactionDTOExpected);
+		transactionServiceImpl.setMinDepositAmount(0.01D);
+		final TransactionDTO transactionDTOResult = transactionServiceImpl.createTransaction(1L, transactionBean);
+
+		assertEquals(transactionDTOExpected, transactionDTOResult);
+
+		verify(accountRepository, times(1)).findById(1L);
+		verify(accountRepository, times(1)).save(firstAccountBalanceUpdated);
+		verify(transactionRepository, times(1)).save(any(Transaction.class));
+
+	}
+
+	/**
+	 * Test with invalid amount.
+	 * 
+	 * @param invalidAmount (should be less or equal zero or greater than the
+	 *                      account balance)
+	 * @throws Exception
+	 */
+	@DisplayName("Withdraw Invalid Amount From Account")
+	@ValueSource(doubles = { 0, -0.01, 55000 })
+	@ParameterizedTest
+	public void testWithdrawInvalidAmountFromAccount(Double invalidAmount) throws Exception {
+
+		assertThrows(AmountNotAllowedException.class, () -> {
+			final TransactionDetailsDto transactionBean = new TransactionDetailsDto();
+			transactionBean.setTransactionType(TransactionType.WITHDRAWAL_OPERATION);
+			transactionBean.setAmount(invalidAmount);
+			transactionBean.setMotive(null);
+			transactionBean.setDate(new Date());
+			transactionBean.setAccountId(1L);
+			transactionServiceImpl.setMinDepositAmount(0.01D);
+			transactionServiceImpl.createTransaction(1L, transactionBean);
+		});
+
+	}
 
 }
