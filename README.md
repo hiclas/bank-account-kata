@@ -25,3 +25,40 @@ mvn spring-boot:run
 # US 4: A customer can display its account transactions history
 - Ajout du service qui affiche la liste des transactions pour un compte donné
 - Ajout des tests unitaires du repositroy
+
+# Ajout des controlleurs rest, Swagger, les tests unitaires pour les controlleurs (avec WebMvcTest)
+- Pour tester les services à l'aide de PostMan:
+	1/ sur l'interface de H2 accessible sur le lien: http://localhost:8080/h2console/ (user name: se, password: vide, url: 		jdbc:h2:mem:testdb),il faut ensuite créer un premier customer avec les parametres:
+		- id = 1
+		- country = 0 (correspond au premier élément de l'Enumeration Country)
+		- Les autres attributs des chaines de caractères.
+	Puis il faut créer Account avec customerId = 1
+	
+	Concernant les paramètres des requetes à utiliser sur postman:
+	
+	- Deposit:
+		* Method POST
+		* URL: localhost:8080/api/v1/transactions/1
+		* Body (sélectionner raw): {"transactionType":"DEPOSIT_OPERATION","amount":"8209.7", "motive":"first Deposit"}
+	
+	- Retrait:
+		* Method POST
+		* URL: localhost:8080/api/v1/transactions/1
+		* Body (sélectionner raw): {"transactionType":"WITHDRAWAL_OPERATION","amount":"189.7", "motive":"first Withdrawal"}
+		
+	- Afficher la balance du compte:
+		* Method GET
+		* URL: localhost:8080/api/v1/transactions/balance/1
+		
+	- Afficher l'historique du compte clien:
+		* Method GET
+		* URL: localhost:8080/api/v1/transactions/all/1
+	
+- Pour le logging on ne doit pas logger les données confidentielles et personnelles du client.
+		
+		
+		
+- Lien d'acess à Swagger: http://localhost:8080/swagger-ui.html
+		
+		
+		
