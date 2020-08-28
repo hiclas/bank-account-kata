@@ -44,13 +44,9 @@ public class TransactionDTO {
 	private Currency currency;
 
 	/**
-	 * Transaction Sender.
+	 * Transaction account.
 	 */
-	private AccountDTO senderAccount;
+	private AccountDTO account;
 
-	/**
-	 * Transaction Receiver.
-	 */
-	private AccountDTO reveiverAccount;
 
 }

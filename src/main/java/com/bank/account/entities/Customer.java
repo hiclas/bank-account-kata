@@ -8,8 +8,10 @@ import javax.persistence.Id;
 
 import com.bank.account.enums.Country;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * The class Customer entity containing customer details.
@@ -18,6 +20,8 @@ import lombok.Data;
 @Entity
 @Builder
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Customer {
 
 	/**

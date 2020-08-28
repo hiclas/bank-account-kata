@@ -1,0 +1,161 @@
+package com.bank.account.services;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Date;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
+import org.springframework.beans.BeanUtils;
+
+import com.bank.account.dtos.TransactionDTO;
+import com.bank.account.dtos.TransactionDetailsDto;
+import com.bank.account.entities.Account;
+import com.bank.account.entities.Customer;
+import com.bank.account.entities.Transaction;
+import com.bank.account.enums.Country;
+import com.bank.account.enums.TransactionType;
+import com.bank.account.exceptions.AccountNotFoundException;
+import com.bank.account.exceptions.AmountNotAllowedException;
+import com.bank.account.repositories.AccountRepository;
+import com.bank.account.repositories.TransactionRepository;
+import com.bank.account.services.impl.TransactionServiceImpl;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+public class TransactionServiceTest {
+
+	@InjectMocks
+	private TransactionServiceImpl transactionServiceImpl;
+
+	private ModelMapper modelMapper;
+
+	@Mock
+	private ModelMapper modelServiceMapper;
+
+	@Mock
+	private AccountRepository accountRepository;
+
+	@Mock
+	private TransactionRepository transactionRepository;
+
+	private Account firstAccount, secondAccount;
+
+	@BeforeEach
+	public void init() {
+	    MockitoAnnotations.initMocks(this);
+
+		modelMapper = new ModelMapper();
+		modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
+		final Customer firstCustomer = Customer.builder().id(1L).firstName("HICHAM").lastName("LASFAR")
+				.email("hicham.lasfar@GMAIL.COM").address("52 RUE DES PIERRELAIS &;;!").zipCode("92320")
+				.city("Chatillon").country(Country.FRANCE).build();
+
+		final Customer secondCustomer = Customer.builder().id(2L).firstName("NADA").lastName("LASFAR")
+				.email("nada.lasfar@GMAIL.COM").address("52 RUE DES PIERRELAIS &;;!").zipCode("92320").city("Chatillon")
+				.country(Country.FRANCE).build();
+
+		firstAccount = Account.builder().id(1L).accountNumber(50553980L).balance(1000.0).customer(firstCustomer)
+				.build();
+
+		secondAccount = Account.builder().id(2L).accountNumber(50553981L).balance(500.0).customer(secondCustomer)
+				.build();
+		// Mocking findById method of account Repository for parameters 1 and 2
+		when(accountRepository.findById(1L)).thenReturn(Optional.of(firstAccount));
+
+		when(accountRepository.findById(2L)).thenReturn(Optional.of(secondAccount));
+	}
+
+	/**
+	 * Valid deposit operation test.
+	 * 
+	 * @throws Exception exception (this test should not throw an exception)
+	 */
+	@DisplayName("Deposit Valid Amount in Account")
+	@ParameterizedTest
+	@ValueSource(doubles = { 0.01, 100, 300, 369, Double.MAX_VALUE })
+	public void testDepositValidAmountInAccount(Double amount) throws Exception {
+
+		// Construction of the transaction details bean
+		final TransactionDetailsDto transactionBean = new TransactionDetailsDto();
+		transactionBean.setTransactionType(TransactionType.DEPOSIT_OPERATION);
+		transactionBean.setAmount(amount);
+		transactionBean.setMotive(null);
+		transactionBean.setDate(new Date());
+		transactionBean.setAccountId(null);
+
+		final Account firstAccountAmountUpdated = Account.builder().build();
+		BeanUtils.copyProperties(firstAccount, firstAccountAmountUpdated);
+		firstAccountAmountUpdated.setBalance(firstAccount.getBalance() + amount);
+
+		// When calling save on the first account we should return this account updated
+		when(accountRepository.save(firstAccountAmountUpdated)).thenReturn(firstAccountAmountUpdated);
+
+		final Transaction transaction = Transaction.builder().id(1L)
+				.transactionType(transactionBean.getTransactionType()).amount(transactionBean.getAmount())
+				.motive(transactionBean.getMotive()).date(transactionBean.getDate()).account(firstAccountAmountUpdated)
+				.build();
+
+		when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+
+		final TransactionDTO transactionDTOExpected = modelMapper.map(transaction, TransactionDTO.class);
+
+		when(modelServiceMapper.map(transaction, TransactionDTO.class)).thenReturn(transactionDTOExpected);
+
+		transactionServiceImpl.setMinDepositAmount(0.01D);
+
+		final TransactionDTO transactionDTOResult = transactionServiceImpl.createTransaction(1L, transactionBean);
+
+		assertEquals(transactionDTOExpected, transactionDTOResult);
+
+		verify(accountRepository, times(1)).findById(1L);
+		verify(accountRepository, times(1)).save(firstAccountAmountUpdated);
+		verify(transactionRepository, times(1)).save(any(Transaction.class));
+
+	}
+
+	/**
+	 * The deposit invalid test case.
+	 * 
+	 * @param invalidAmount should be less than: 0.01
+	 * @throws Exception
+	 */
+	@DisplayName("Deposit Invalid Amount In Account")
+	@ValueSource(doubles = { 0.009, 0, -44 })
+	@ParameterizedTest
+	public void testDepositInvalidAmountInAccount(Double invalidAmount) throws Exception {
+		assertThrows(AmountNotAllowedException.class, () -> {
+			final TransactionDetailsDto transactionBean = new TransactionDetailsDto();
+			transactionBean.setTransactionType(TransactionType.DEPOSIT_OPERATION);
+			transactionBean.setAmount(invalidAmount);
+			transactionBean.setMotive(null);
+			transactionBean.setDate(new Date());
+			transactionBean.setAccountId(1L);
+
+			firstAccount.setBalance(0.0);
+			transactionServiceImpl.setMinDepositAmount(0.01D);
+			transactionServiceImpl.createTransaction(1L, transactionBean);
+		});
+
+	}
+
+}
